@@ -1,0 +1,26 @@
+# Datos
+data/
+hf_cache/
+
+# Entornos virtuales
+src/CLTM/graph_env/
+backyard/
+
+# Salidas
+src/outputs/
+src/asr/logs/
+src/asr/finetuned
+src/asr/mHuBERT-147
+src/speaker/verification/outputs
+src/speaker-no-validation/verification/outputs
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env
+.venv
+venv/
+env/
