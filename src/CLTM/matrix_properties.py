@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """
-matrix_properties.py
+matrix_properties.py (patched)
 
-Compute a comprehensive set of numerical diagnostics and properties from a
-normalized cross-lingual transfer matrix (M_norm). The script prints the
-results to stdout (console) and also saves detailed metric tables to CSV
-in the output directory for later inspection.
+Updated to:
+ - treat off-diagonal entries as the canonical "donor->target" interactions
+ - compute prop_positive/prop_negative/prop_gt1 excluding the diagonal
+ - replace magnitude-weighted reciprocity with a simple count-based reciprocity
+   (fraction of unordered off-diagonal pairs where both directions are positive)
+ - exclude diagonal contributions from incoming/outgoing per-node aggregates
+ - compute intra-family positive mass fraction excluding diagonal self-mass
+ - list top inter-lingual pairs (exclude diagonal) for positives/negatives
+ - expose an explicit `rfd1` variable (relative Frobenius deviation)
+
+Minimal, logical changes: semantics align with paper wording (off-diagonal, unweighted reciprocity).
 """
 
 import argparse
@@ -125,6 +132,12 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
     n = M.shape[0]
     ones = np.ones_like(M)
 
+    # masks
+    mask_offdiag = ~np.eye(n, dtype=bool)
+    n_total = n * n
+    n_offdiag = n * (n - 1)
+    n_pairs_unordered = n * (n - 1) // 2
+
     # Basic sizes
     diag = np.diag(M)
     mean_diag = np.mean(diag)
@@ -133,35 +146,33 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
     # Norms
     frob = norm(M, 'fro')
     frob_diff_ones = norm(M - ones, 'fro')
-    rel_frob_diff = frob_diff_ones / (norm(ones, 'fro') + 1e-12)
+    norm_ones = norm(ones, 'fro')  # equals n
+    rfd1 = frob_diff_ones / (norm_ones + 1e-12)  # Relative Frobenius Deviation (explicit)
 
     # Asymmetry measure (relative)
     asym_frob = norm(M - M.T, 'fro')
     asym_rel = asym_frob / (frob + 1e-12)
 
-    # Positive/negative statistics
-    n_pos = np.sum(M > 0)
-    n_neg = np.sum(M < 0)
-    prop_pos = n_pos / (n * n)
-    prop_neg = n_neg / (n * n)
-    prop_gt1 = np.sum(M > 1.0) / (n * n)
+    # Positive/negative statistics (off-diagonal)
+    n_pos_offdiag = np.sum((M > 0) & mask_offdiag)
+    n_neg_offdiag = np.sum((M < 0) & mask_offdiag)
+    prop_pos = n_pos_offdiag / (n_offdiag + 1e-12)
+    prop_neg = n_neg_offdiag / (n_offdiag + 1e-12)
+    prop_gt1 = np.sum((M > 1.0) & mask_offdiag) / (n_offdiag + 1e-12)
 
-    # Incoming/outgoing positive strengths (per-language)
+    # Incoming/outgoing positive strengths (per-language) -- exclude diagonal
     pos_M = np.maximum(M, 0.0)
-    incoming_pos = pos_M.sum(axis=1)  # how much each target benefits
-    outgoing_pos = pos_M.sum(axis=0)  # how much each source donates
+    diag_pos = np.diag(pos_M).copy()
+    incoming_pos = pos_M.sum(axis=1) - diag_pos  # how much each target benefits from other languages
+    outgoing_pos = pos_M.sum(axis=0) - diag_pos  # how much each source donates to other languages
 
-    # Reciprocity on positive weights
-    # r = sum_min / sum_max over i!=j
-    num = 0.0
-    den = 0.0
+    # Reciprocity (count-based, unweighted): fraction of unordered off-diagonal pairs where both directions are positive
+    reciprocal_count = 0
     for i in range(n):
         for j in range(i + 1, n):
-            a = pos_M[i, j]
-            b = pos_M[j, i]
-            num += min(a, b)
-            den += max(a, b)
-    reciprocity_pos = num / (den + 1e-12)
+            if (M[i, j] > 0) and (M[j, i] > 0):
+                reciprocal_count += 1
+    reciprocity_pos = reciprocal_count / (n_pairs_unordered + 1e-12)
 
     # Pairwise row similarity (cosine)
     # compute cosine similarity matrix between rows
@@ -171,7 +182,7 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
     cos_sim = row_dot / (row_norms[:, None] * row_norms[None, :])
     # clamp numerical noise
     cos_sim = np.clip(cos_sim, -1.0, 1.0)
-    avg_row_cos = (np.sum(cos_sim) - np.trace(cos_sim)) / (n * (n - 1))
+    avg_row_cos = (np.sum(cos_sim) - np.trace(cos_sim)) / (n * (n - 1) + 1e-12)
 
     # PCA on rows to estimate intrinsic dimensionality
     pca = PCA(n_components=min(n, M.shape[1]))
@@ -194,11 +205,12 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
         s = np.array([])
         cond = np.nan
 
-    # row-wise concentration metrics (entropy on positive part, gini)
+    # row-wise concentration metrics (entropy on positive part, gini) -- off-diagonal
     row_entropy = np.zeros(n)
     row_gini = np.zeros(n)
     for i in range(n):
-        pos = pos_M[i, :]
+        pos = pos_M[i, :].copy()
+        pos[i] = 0.0  # exclude diagonal self-mass
         ssum = pos.sum()
         if ssum <= 0:
             row_entropy[i] = np.nan
@@ -212,7 +224,8 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
     col_entropy = np.zeros(n)
     col_gini = np.zeros(n)
     for j in range(n):
-        pos = pos_M[:, j]
+        pos = pos_M[:, j].copy()
+        pos[j] = 0.0
         ssum = pos.sum()
         if ssum <= 0:
             col_entropy[j] = np.nan
@@ -222,7 +235,7 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
             col_entropy[j] = -np.nansum(p * np.log(p + 1e-12))
             col_gini[j] = gini(pos)
 
-    # Top donors and receivers
+    # Top donors and receivers (based on off-diagonal sums)
     donors_idx = np.argsort(-outgoing_pos)[:top_k]
     receivers_idx = np.argsort(-incoming_pos)[:top_k]
 
@@ -239,20 +252,20 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
             name2family = NAME2FAMILY
         families = [name2family.get(fn, 'Unknown') for fn in full_names]
         df_meta = pd.DataFrame({'abbrev': abbrevs, 'full_name': full_names, 'family': families,
-                                'incoming_pos': incoming_pos, 'outgoing_pos': outgoing_pos,
+                                'incoming_pos_offdiag': incoming_pos, 'outgoing_pos_offdiag': outgoing_pos,
                                 'diag': diag})
         family_stats = df_meta.groupby('family').agg({
-            'incoming_pos': ['mean', 'sum', 'count'],
-            'outgoing_pos': ['mean', 'sum'],
+            'incoming_pos_offdiag': ['mean', 'sum', 'count'],
+            'outgoing_pos_offdiag': ['mean', 'sum'],
             'diag': ['mean']
         })
     else:
         df_meta = None
 
-    # Assortativity-like measure: fraction of positive mass that stays within same family
+    # Assortativity-like measure: fraction of positive mass that stays within same family (off-diagonal)
     intra_family_mass_frac = None
     if family_stats is not None:
-        total_pos_mass = pos_M.sum()
+        total_pos_mass_offdiag = pos_M[mask_offdiag].sum()
         intra = 0.0
         for fam in df_meta['family'].unique():
             members = df_meta[df_meta['family'] == fam]['abbrev'].values
@@ -260,14 +273,28 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
                 continue
             idx = [abbrevs.index(m) for m in members]
             sub = pos_M[np.ix_(idx, idx)].sum()
+            # subtract diagonal self-mass for these members
+            sub -= np.sum(np.diag(pos_M)[idx])
             intra += sub
-        intra_family_mass_frac = intra / (total_pos_mass + 1e-12)
+        intra_family_mass_frac = intra / (total_pos_mass_offdiag + 1e-12)
 
-    # Pairwise extreme pairs: strongest positive and strongest negative interactions
-    flat_idx_pos = np.unravel_index(np.argsort(-M.ravel()), M.shape)
-    top_pairs_pos = list(zip(flat_idx_pos[0][:top_k], flat_idx_pos[1][:top_k], M.ravel()[np.argsort(-M.ravel())][:top_k]))
-    flat_idx_neg = np.unravel_index(np.argsort(M.ravel()), M.shape)
-    top_pairs_neg = list(zip(flat_idx_neg[0][:top_k], flat_idx_neg[1][:top_k], M.ravel()[np.argsort(M.ravel())][:top_k]))
+    # Pairwise extreme pairs: strongest positive and strongest negative interactions (exclude diagonal)
+    flat_idx_off = np.where(mask_offdiag.ravel())[0]
+    off_values = M.ravel()[flat_idx_off]
+    # strongest positive
+    order_pos = np.argsort(-off_values)
+    top_pairs_pos = []
+    for k in range(min(top_k, len(order_pos))):
+        flat = flat_idx_off[order_pos[k]]
+        i, j = divmod(flat, n)
+        top_pairs_pos.append((i, j, float(M[i, j])))
+    # strongest negative
+    order_neg = np.argsort(off_values)[:min(top_k, len(off_values))]
+    top_pairs_neg = []
+    for k in range(len(order_neg)):
+        flat = flat_idx_off[order_neg[k]]
+        i, j = divmod(flat, n)
+        top_pairs_neg.append((i, j, float(M[i, j])))
 
     # Compose summary dict
     summary = {
@@ -276,30 +303,30 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
         'std_diag': float(std_diag),
         'frob_norm': float(frob),
         'frob_diff_to_ones': float(frob_diff_ones),
-        'rel_frob_diff': float(rel_frob_diff),
+        'rfd1': float(rfd1),
         'asym_frob': float(asym_frob),
         'asym_rel': float(asym_rel),
-        'prop_positive': float(prop_pos),
-        'prop_negative': float(prop_neg),
-        'prop_gt1': float(prop_gt1),
-        'reciprocity_pos': float(reciprocity_pos),
+        'prop_positive_offdiag': float(prop_pos),
+        'prop_negative_offdiag': float(prop_neg),
+        'prop_gt1_offdiag': float(prop_gt1),
+        'reciprocity_pos_unweighted': float(reciprocity_pos),
         'avg_row_cosine': float(avg_row_cos),
         'n_components_80pct_var': int(n_components_80),
         'spectral_radius': float(spectral_radius),
         'svd_cond': float(cond),
-        'intra_family_pos_mass_frac': None if intra_family_mass_frac is None else float(intra_family_mass_frac),
+        'intra_family_pos_mass_frac_offdiag': None if intra_family_mass_frac is None else float(intra_family_mass_frac),
     }
 
     # Per-node table
     per_node = pd.DataFrame({
         'abbrev': labels if labels is not None else [f'N{i}' for i in range(n)],
         'diag': diag,
-        'incoming_pos': incoming_pos,
-        'outgoing_pos': outgoing_pos,
-        'row_entropy_pos': row_entropy,
-        'row_gini_pos': row_gini,
-        'col_entropy_pos': col_entropy,
-        'col_gini_pos': col_gini,
+        'incoming_pos_offdiag': incoming_pos,
+        'outgoing_pos_offdiag': outgoing_pos,
+        'row_entropy_pos_offdiag': row_entropy,
+        'row_gini_pos_offdiag': row_gini,
+        'col_entropy_pos_offdiag': col_entropy,
+        'col_gini_pos_offdiag': col_gini,
     })
     if df_meta is not None:
         per_node = per_node.set_index('abbrev').join(
@@ -326,7 +353,7 @@ def compute_properties(M, labels=None, abbrev_map=None, name2family=None, outdir
         'summary': summary,
         'per_node': per_node,
         'pairwise_similarity': sim_df,
-        'top_pos_pairs': top_pos_pairs,
+ 'top_pos_pairs': top_pos_pairs,
         'top_neg_pairs': top_neg_pairs,
         'family_stats': family_stats,
     }
@@ -388,13 +415,13 @@ def main():
     results = compute_properties(M, labels=labels, abbrev_map=abbrev_map, name2family=name2family, outdir=args.output_dir, top_k=args.top_k)
 
     pretty_print_summary(results['summary'])
-    print('\nPer-node top 10 receivers by incoming_pos:')
-    rcv = results['per_node'].sort_values('incoming_pos', ascending=False).head(10)
-    print(rcv[['full_name' if 'full_name' in rcv.columns else 'diag', 'incoming_pos']])
+    print('\nPer-node top 10 receivers by incoming_pos_offdiag:')
+    rcv = results['per_node'].sort_values('incoming_pos_offdiag', ascending=False).head(10)
+    print(rcv[['full_name' if 'full_name' in rcv.columns else 'diag', 'incoming_pos_offdiag']])
 
-    print('\nPer-node top 10 donors by outgoing_pos:')
-    dnr = results['per_node'].sort_values('outgoing_pos', ascending=False).head(10)
-    print(dnr[['full_name' if 'full_name' in dnr.columns else 'diag', 'outgoing_pos']])
+    print('\nPer-node top 10 donors by outgoing_pos_offdiag:')
+    dnr = results['per_node'].sort_values('outgoing_pos_offdiag', ascending=False).head(10)
+    print(dnr[['full_name' if 'full_name' in dnr.columns else 'diag', 'outgoing_pos_offdiag']])
 
     pretty_print_top_pairs(results['top_pos_pairs'], 'Top positive pairs (value desc)')
     pretty_print_top_pairs(results['top_neg_pairs'], 'Top negative pairs (value asc)')

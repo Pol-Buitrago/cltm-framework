@@ -88,4 +88,17 @@ python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repo
 python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs --lang sw
 python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs --lang th
 python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs --lang zh-CN
+
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang ca
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang en
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang eo
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang es
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang eu
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang hu
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang ja
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang ka
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang ru
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang sw
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang th
+python combine_seeds_eer_auc.py --indir /gpfs/projects/bsc88/speech/mm_s2st/repos/paraling_speech/src/outputs/subsets/siamese/speaker/seeds --lang zh-CN
 """

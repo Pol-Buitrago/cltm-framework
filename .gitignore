@@ -1,26 +1,58 @@
-# Datos
+# ====================
+# Datos y cachés
+# ====================
 data/
 hf_cache/
 
-# Entornos virtuales
+# ====================
+# Entornos virtuales y entornos específicos
+# ====================
 src/CLTM/graph_env/
 backyard/
+.env
+.venv/
+venv/
+env/
 
-# Salidas
+# ====================
+# Salidas de experimentos y logs
+# ====================
 src/outputs/
-src/asr/logs/
-src/asr/finetuned
-src/asr/mHuBERT-147
-src/speaker/verification/outputs
-src/speaker-no-validation/verification/outputs
+src/HuBERT/asr/logs/
+src/HuBERT/asr/finetuned/
+src/HuBERT/asr/mHuBERT-147/
+src/HuBERT/speaker/verification/outputs/
+src/HuBERT/speaker-no-validation/verification/outputs/
+src/ECAPA/logs/
+src/siamese/logs/
+src/speechLLM/logs/
 
+# ====================
+# Modelos grandes (no versionar)
+# ====================
+src/speechLLM/models/
+src/HuBERT/asr/models/
+src/HuBERT/speaker/models/
+src/HuBERT/speaker-no-validation/models/
+src/ECAPA/models/
+src/siamese/models/
+
+# ====================
 # Python
+# ====================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.egg-info/
-.env
-.venv
-venv/
-env/
+
+# ====================
+# Resultados / plots / tablas / CLTM
+# ====================
+scripts/visualization/
+src/CLTM/figures_transfer/
+src/CLTM/maps/
+src/CLTM/maps_backyard/
+src/CLTM/matrix_props/
+src/CLTM/transfer_matrix/
+src/HuBERT/asr/test_subsets/
