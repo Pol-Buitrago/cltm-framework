@@ -151,7 +151,19 @@ Experiments were executed on the **MareNostrum 5 supercomputer** at the Barcelon
 
 ## Citation
 
-If you use this framework or the CLTM methodology in your research, please cite.
+If you use this framework or the Cross-Lingual Transfer Matrix (CLTM) methodology in your research, please cite the original paper:
+
+```bibtex
+@article{buitrago2026cltransfer,
+  title={Quantifying Cross-Lingual Transfer in Paralinguistic Speech Tasks},
+  author={Buitrago, Pol and Pareras, Oriol and Costa, Federico and Hernando, Javier},
+  journal={arXiv preprint arXiv:2603.08231},
+  year={2026},
+  note={Accepted at Interspeech 2026}
+}
+```
+
+This repository contains the reference implementation of the CLTM framework introduced in the above publication.
 
 ---
 
@@ -166,11 +178,55 @@ Proper attribution is required:
 
 ---
 
+## Related Publications
+
+The CLTM framework has been introduced and subsequently extended through the following publications.
+
+#### 1. CLTM methodology
+
+Introduces the Cross-Lingual Transfer Matrix (CLTM), a general framework for quantifying cross-lingual transfer in speech processing, and validates it on two paralinguistic tasks: **Gender Identification** and **Speaker Verification**.
+
+```bibtex
+@article{buitrago2026cltransfer,
+  title={Quantifying Cross-Lingual Transfer in Paralinguistic Speech Tasks},
+  author={Buitrago, Pol and Pareras, Oriol and Costa, Federico and Hernando, Javier},
+  journal={arXiv preprint arXiv:2603.08231},
+  year={2026},
+  note={Accepted at Interspeech 2026}
+}
+```
+
+#### 2. Speaker Verification architectures
+
+Applies the CLTM framework to compare the cross-lingual transfer properties of multiple speaker verification architectures.
+
+```bibtex
+@inproceedings{buitrago2026towards,
+  title={Towards Language-Agnostic Speaker Verification: A Cross-Lingual Transfer Study of Architectures},
+  author={Buitrago, Pol and Hernando, Javier},
+  booktitle={Proceedings of Odyssey 2026: The Speaker and Language Recognition Workshop},
+  pages={298--305},
+  year={2026},
+  doi={10.21437/Odyssey.2026-44}
+}
+```
+
+#### 3. Speaker and language disentanglement
+
+Evaluates the impact of speaker variability on cross-lingual speaker verification performance within the Iberian languages setting, using the CLTM framework to disentangle speaker and language effects.
+
+```bibtex
+@article{buitrago2026disentangling,
+  title={Disentangling Speaker and Language Effects in Cross-Lingual Speaker Verification for Iberian Languages},
+  author={Buitrago, Pol and Hernando, Javier},
+  journal={arXiv preprint arXiv:2607.01161},
+  year={2026}
+}
+```
+
 ## Contact
 
 **Pol Buitrago Esteve**
 GitHub: [https://github.com/Pol-Buitrago](https://github.com/Pol-Buitrago)
 
 ---
-
-¿Quieres que haga eso?
